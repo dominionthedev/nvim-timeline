@@ -4,13 +4,13 @@ Git-like history for individual files in Neovim — the part vim's
 `undofile` can't do: a file's history survives being deleted and
 recreated, because identity is tracked independently of path.
 
-## Status: v1 core, no UI yet
+## Status: v1 core + branching/checkout, no picker UI yet
 
-This is the data layer, proven against real edit sequences (see
-`tests/`), plus one deliberately bare command (`:TimelineLog`) to
-inspect it. There is no picker, no diff view, no branch-switching
-command yet — those are next, once the log format has been lived with
-for a while. See `tests/` for exactly what's covered.
+The data layer, identity correlation, and branching/checkout are
+implemented and covered by real tests (see `tests/`). What's still
+missing is a viewer beyond the bare `:TimelineLog`/`:TimelineBranches`
+commands — no diff view, no picker. See `tests/` for exactly what's
+covered.
 
 ## How it works
 
@@ -61,15 +61,26 @@ the file's own directory). Add `.nvim-timeline/` to your project's
 
 ## Usage
 
-- Just edit and save files normally.
+- Just edit and save files normally — commits happen on their own.
 - `:TimelineLog` — print the current file's commit history.
+- `:TimelineBranches` — list branches for the current file, `*` marks
+  the current one.
+- `:TimelineBranch {name}` — create a branch at the current tip and
+  switch to it.
+- `:TimelineCheckout {branch-name|commit-hash-or-prefix}` — load that
+  branch's or commit's content into the buffer. **This never writes to
+  disk by itself.** Checking out a branch is a real, persisted switch;
+  checking out an older commit that isn't any branch's tip puts the
+  buffer in a transient "detached" state — if you save from there,
+  you're prompted to name a new branch before anything is committed.
+  Nothing is recorded until you choose to save.
 
 ## What's deliberately not here yet
 
-- Branch creation/switching (the log schema already has a `branch`
-  field; only `"main"` is ever written to right now)
-- Any picker/viewer beyond `:TimelineLog`
-- Checkout / time-travel to a prior commit
+- Any picker/viewer beyond the bare commands above (no diff view, no
+  fuzzy-picker for branches/commits)
+- Branch merging (not planned — this is single-writer history; a
+  branch is just a second named tip, not a mergeable line)
 - A filesystem watcher for live-witnessed deletions (explicitly out of
   scope — see "How it works" above)
 
