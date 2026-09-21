@@ -1,5 +1,7 @@
 local M = {}
 
+vim.opt.swapfile = false
+
 local failures = 0
 
 function M.assert_eq(actual, expected, msg)
@@ -39,10 +41,10 @@ end
 function M.finish()
   if failures > 0 then
     print(("\n%d assertion(s) failed"):format(failures))
-    vim.cmd("cquit 1")
+    vim.cmd("cquit! 1")
   else
     print("\nall assertions passed")
-    vim.cmd("qa")
+    vim.cmd("qa!")
   end
 end
 
