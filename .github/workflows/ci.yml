@@ -20,5 +20,5 @@ jobs:
         run: |
           for f in tests/smoke_*.lua; do
             echo "=== $f ==="
-            nvim --headless -u NONE -c "luafile $f"
+            timeout 30 nvim --headless -u NONE -c "luafile $f"
           done
