@@ -72,4 +72,33 @@ function M.head(root, id)
   return commits[#commits]
 end
 
+--- Find a commit by full hash or unambiguous prefix.
+---@param root string
+---@param id string
+---@param ref string full hash or a prefix of one
+---@return Commit|nil commit
+---@return string|nil error set if the prefix matches more than one commit
+function M.find(root, id, ref)
+  local matches = {}
+  for _, commit in ipairs(M.read(root, id)) do
+    if commit.hash == ref or commit.hash:sub(1, #ref) == ref then
+      table.insert(matches, commit)
+    end
+  end
+  if #matches == 0 then
+    return nil, nil
+  end
+  if #matches > 1 then
+    -- Multiple distinct commits can share a prefix; only ambiguous if
+    -- they're not all literally the same commit content re-hashed.
+    local first_hash = matches[1].hash
+    for _, m in ipairs(matches) do
+      if m.hash ~= first_hash then
+        return nil, ("ambiguous ref %q, be more specific"):format(ref)
+      end
+    end
+  end
+  return matches[1], nil
+end
+
 return M
