@@ -14,11 +14,14 @@
 local M = {}
 
 local INDEX_FILE = "index.json"
+M.DEFAULT_BRANCH = "main"
 
 ---@class TimelineEntry
 ---@field last_known_path string
 ---@field last_hash string
 ---@field created_at integer  -- os.time() at first write
+---@field head_branch string  -- which branch new writes append to
+---@field branches table<string, string>  -- branch_name -> tip commit hash
 
 --- Load the index from disk. Returns an empty index if none exists yet —
 --- this is the expected state for a freshly-initialized store, not an
@@ -88,6 +91,8 @@ function M.find_orphans(timelines)
 end
 
 --- Register a brand new timeline for a path, with no prior history.
+--- Branch state starts empty -- the first commit (appended by the
+--- caller right after this) is what actually sets branches[head_branch].
 ---@param paths table<string, string>
 ---@param timelines table<string, TimelineEntry>
 ---@param file_path string
@@ -100,8 +105,53 @@ function M.create(paths, timelines, file_path, hash)
     last_known_path = file_path,
     last_hash = hash,
     created_at = os.time(),
+    head_branch = M.DEFAULT_BRANCH,
+    branches = {},
   }
   return id
+end
+
+--- The branch new writes should append to.
+---@param entry TimelineEntry
+---@return string
+function M.current_branch(entry)
+  return entry.head_branch or M.DEFAULT_BRANCH
+end
+
+--- The tip commit hash of a branch, or nil if that branch has no commits
+--- yet (only possible for head_branch on a freshly created timeline).
+---@param entry TimelineEntry
+---@param branch string
+---@return string|nil
+function M.branch_head(entry, branch)
+  return entry.branches[branch]
+end
+
+--- Record a new tip for a branch after a commit lands.
+---@param entry TimelineEntry
+---@param branch string
+---@param hash string
+function M.set_branch_head(entry, branch, hash)
+  entry.branches[branch] = hash
+end
+
+--- Create a new branch pointing at a given commit and make it current.
+--- Used both for explicit :TimelineBranch and for the prompt that fires
+--- when committing from a detached (non-tip) checkout.
+---@param entry TimelineEntry
+---@param name string
+---@param from_hash string
+function M.create_branch(entry, name, from_hash)
+  entry.branches[name] = from_hash
+  entry.head_branch = name
+end
+
+--- Switch which branch new writes append to, without creating a commit.
+--- Only valid for a branch that already has a tip.
+---@param entry TimelineEntry
+---@param name string
+function M.switch_branch(entry, name)
+  entry.head_branch = name
 end
 
 --- Point an existing timeline at a new path (rename, or a recreation
