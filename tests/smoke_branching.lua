@@ -64,7 +64,16 @@ h.assert_eq(idx.timelines[id].head_branch, "main", "checking out a branch by nam
 -- explicit branch creation at the current tip
 vim.cmd("TimelineBranch stable")
 idx = h.read_json(dir .. "/.nvim-timeline/index.json")
-h.assert_eq(idx.timelines[id].branches["stable"], idx.timelines[id].branches["main"], "explicit branch creation points at the current tip")
+h.assert_eq(
+  idx.timelines[id].branches["stable"].hash,
+  idx.timelines[id].branches["main"].hash,
+  "explicit branch creation points at the current tip"
+)
+h.assert_eq(
+  idx.timelines[id].branches["stable"].seq,
+  idx.timelines[id].branches["main"].seq,
+  "explicit branch creation points at the same seq as the tip it branched from"
+)
 h.assert_eq(idx.timelines[id].head_branch, "stable", "explicit branch creation switches to the new branch")
 
 h.finish()
