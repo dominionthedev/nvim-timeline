@@ -1,2 +1,3 @@
 .nvim-timeline/
+.deps/
 *.swp
