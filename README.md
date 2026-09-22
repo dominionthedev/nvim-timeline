@@ -4,13 +4,12 @@ Git-like history for individual files in Neovim — the part vim's
 `undofile` can't do: a file's history survives being deleted and
 recreated, because identity is tracked independently of path.
 
-## Status: v1 core + branching/checkout, no picker UI yet
+## Status: v1 -- core, branching/checkout, and a real UI
 
-The data layer, identity correlation, and branching/checkout are
-implemented and covered by real tests (see `tests/`). What's still
-missing is a viewer beyond the bare `:TimelineLog`/`:TimelineBranches`
-commands — no diff view, no picker. See `tests/` for exactly what's
-covered.
+Data layer, identity correlation, branching/checkout, and a nui.nvim
+picker with live diff preview are all implemented and covered by real
+tests (see `tests/`) -- including one that drives the UI with actual
+keypresses, not just checks that it opens without erroring.
 
 ## How it works
 
@@ -53,11 +52,16 @@ the file's own directory). Add `.nvim-timeline/` to your project's
 ```lua
 {
   "dominionthedev/nvim-timeline",
+  dependencies = { "MunifTanjim/nui.nvim" },
   config = function()
     require("nvim-timeline").setup({})
   end,
 }
 ```
+
+The picker (`:TimelineView`) is built directly on nui.nvim's `Menu` and
+`Layout` -- not wrapped around telescope or snacks.nvim -- so it's the
+one real dependency.
 
 ## Usage
 
@@ -67,26 +71,35 @@ the file's own directory). Add `.nvim-timeline/` to your project's
   the current one.
 - `:TimelineBranch {name}` — create a branch at the current tip and
   switch to it.
-- `:TimelineCheckout {branch-name|commit-hash-or-prefix}` — load that
-  branch's or commit's content into the buffer. **This never writes to
-  disk by itself.** Checking out a branch is a real, persisted switch;
-  checking out an older commit that isn't any branch's tip puts the
-  buffer in a transient "detached" state — if you save from there,
-  you're prompted to name a new branch before anything is committed.
-  Nothing is recorded until you choose to save.
+- `:TimelineCheckout {branch-name|commit-ref}` — load that branch's or
+  commit's content into the buffer. Accepts a branch name, a seq number
+  (e.g. `7`), or a hash prefix. **This never writes to disk by itself.**
+  Checking out a branch is a real, persisted switch; checking out an
+  older commit that isn't any branch's tip puts the buffer in a
+  transient "detached" state — if you save from there, you're prompted
+  to name a new branch before anything is committed. Nothing is
+  recorded until you choose to save.
+- `:TimelineView` — the picker. Left pane lists commits for the current
+  branch (newest first), right pane shows a live diff against the
+  parent as you move. Keys: `j`/`k` to move, `<CR>` to check out the
+  highlighted commit (same detached-state rules as `:TimelineCheckout`
+  above), `b` to branch off the highlighted commit (works on any
+  commit, not just the tip), `<Tab>` to cycle branches, `q`/`<Esc>` to
+  close.
 
 ## What's deliberately not here yet
 
-- Any picker/viewer beyond the bare commands above (no diff view, no
-  fuzzy-picker for branches/commits)
 - Branch merging (not planned — this is single-writer history; a
   branch is just a second named tip, not a mergeable line)
 - A filesystem watcher for live-witnessed deletions (explicitly out of
   scope — see "How it works" above)
+- Fuzzy filtering inside the picker (it's a plain list -- fine at the
+  scale of one file's history, revisit if that stops being true)
 
 ## Testing
 
 ```sh
+git clone --depth 1 https://github.com/MunifTanjim/nui.nvim.git .deps/nui.nvim  # once, for the view tests
 for f in tests/smoke_*.lua; do nvim --headless -u NONE -c "luafile $f"; done
 ```
 

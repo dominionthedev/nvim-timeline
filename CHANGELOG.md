@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- **The picker**: `:TimelineView`, built directly on nui.nvim (`Menu` +
+  `Layout`), not wrapped around another picker plugin. Commit list with
+  live diff-vs-parent preview, branch cycling (`<Tab>`), checkout
+  (`<CR>`), and branch-from-any-commit (`b`). nui.nvim is now a real
+  dependency (see README install snippet).
+- Added `diff.lua`, a thin wrapper around `vim.diff` (unified diffs, no
+  external dependency).
+- **Fixed a latent graph-identity bug**, found while designing the
+  picker rather than by accident: parent pointers were keyed by content
+  hash, which breaks the moment a commit's content matches its own
+  parent's -- which a relink commit always does by definition (that's
+  what made it match). Walking history by hash couldn't tell "found the
+  parent" from "found myself." Every commit now carries a strictly
+  increasing `seq`, which becomes the real graph identity; `hash` is
+  content-only from here on. `index.lua`'s branch tips are now
+  `{hash, seq}` pairs instead of bare hash strings.
+- Added `history.lua`: a pure, UI-free function that walks a branch's
+  commit chain by `seq`, with a regression test reproducing the exact
+  repeated-hash scenario that broke the old hash-based approach.
+- `log.find` (used by `:TimelineCheckout`) now also accepts a bare
+  `seq` number, not just a hash prefix.
+
+## Unreleased (earlier)
+
 - Branching and checkout: `:TimelineBranch`, `:TimelineBranches`,
   `:TimelineCheckout`. Checkout never writes to disk on its own —
   landing on a branch tip is a persisted switch, landing on an older
