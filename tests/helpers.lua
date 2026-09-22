@@ -2,6 +2,15 @@ local M = {}
 
 vim.opt.swapfile = false
 
+-- Only the view tests actually need nui.nvim; everything else (identity,
+-- rename, candidate, history, diff, branching) has zero UI dependency.
+-- Adding it here if present is harmless and saves every UI test from
+-- repeating the same rtp setup.
+local nui_path = os.getenv("NVIM_TIMELINE_NUI_PATH") or (vim.fn.getcwd() .. "/.deps/nui.nvim")
+if vim.loop.fs_stat(nui_path) then
+  vim.opt.rtp:prepend(nui_path)
+end
+
 local failures = 0
 
 function M.assert_eq(actual, expected, msg)
