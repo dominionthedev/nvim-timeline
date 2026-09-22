@@ -16,6 +16,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y neovim
 
+      - name: Vendor nui.nvim (test dependency for the view)
+        run: git clone --depth 1 https://github.com/MunifTanjim/nui.nvim.git .deps/nui.nvim
+
       - name: Run tests
         run: |
           for f in tests/smoke_*.lua; do
