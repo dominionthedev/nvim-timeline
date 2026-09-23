@@ -11,6 +11,19 @@ if vim.loop.fs_stat(nui_path) then
   vim.opt.rtp:prepend(nui_path)
 end
 
+-- Isolate stdpath("state") for every test run so timeline.paths never
+-- touches (or gets confused by) a real Neovim state directory.
+local FAKE_STATE = "/tmp/timeline-tests-state"
+vim.fn.stdpath = (function(original)
+  return function(kind)
+    if kind == "state" then
+      return FAKE_STATE
+    end
+    return original(kind)
+  end
+end)(vim.fn.stdpath)
+M.FAKE_STATE = FAKE_STATE
+
 local failures = 0
 
 function M.assert_eq(actual, expected, msg)
