@@ -21,10 +21,10 @@
 --   * hashing via vim.fn.sha256, no native dependency
 --   * a deletion is discovered on the next related write, never witnessed
 
-local store = require("nvim-timeline.store")
-local index = require("nvim-timeline.index")
-local correlate = require("nvim-timeline.correlate")
-local log = require("nvim-timeline.log")
+local store = require("timeline.store")
+local index = require("timeline.index")
+local correlate = require("timeline.correlate")
+local log = require("timeline.log")
 
 local M = {}
 
@@ -159,11 +159,11 @@ end
 local function commit_detached(bufnr, file_path, content, hash)
   local d = detached[bufnr]
   vim.ui.input({
-    prompt = ("nvim-timeline: you're editing from an old commit (%s). Name a new branch to save this as: ")
+    prompt = ("timeline.nvim: you're editing from an old commit (%s). Name a new branch to save this as: ")
       :format(d.hash:sub(1, 10)),
   }, function(name)
     if not name or name == "" then
-      vim.notify("nvim-timeline: save cancelled -- no branch name given", vim.log.levels.WARN)
+      vim.notify("timeline.nvim: save cancelled -- no branch name given", vim.log.levels.WARN)
       return
     end
 
@@ -192,7 +192,7 @@ local function commit_detached(bufnr, file_path, content, hash)
     end
 
     detached[bufnr] = nil
-    vim.notify(("nvim-timeline: saved to new branch %q"):format(name))
+    vim.notify(("timeline.nvim: saved to new branch %q"):format(name))
   end)
 end
 
@@ -236,7 +236,7 @@ local function on_write(bufnr)
   if decision.kind == "candidate" then
     local old_path = timelines[decision.timeline_id].last_known_path
     vim.ui.select({ "Link", "Start new" }, {
-      prompt = ("nvim-timeline: %s looks like it might continue %s (deleted earlier). Link them?")
+      prompt = ("timeline.nvim: %s looks like it might continue %s (deleted earlier). Link them?")
         :format(vim.fn.fnamemodify(file_path, ":t"), old_path),
     }, function(choice)
       -- Re-load: time may have passed while the prompt was open.
@@ -290,14 +290,14 @@ end
 local function checkout(ref)
   local file_path = vim.api.nvim_buf_get_name(0)
   if file_path == "" then
-    vim.notify("nvim-timeline: buffer has no file", vim.log.levels.WARN)
+    vim.notify("timeline.nvim: buffer has no file", vim.log.levels.WARN)
     return
   end
 
   local root = resolve_root(file_path)
   local id, paths, timelines = lookup_current(root, file_path)
   if not id then
-    vim.notify("nvim-timeline: no history for this file yet", vim.log.levels.INFO)
+    vim.notify("timeline.nvim: no history for this file yet", vim.log.levels.INFO)
     return
   end
   local entry = timelines[id]
@@ -310,24 +310,24 @@ local function checkout(ref)
   if tip then
     local content = store.get(root, tip.hash)
     if not content then
-      vim.notify("nvim-timeline: branch tip content missing from store (corrupt store?)", vim.log.levels.ERROR)
+      vim.notify("timeline.nvim: branch tip content missing from store (corrupt store?)", vim.log.levels.ERROR)
       return
     end
     index.switch_branch(entry, ref)
     index.save(root, paths, timelines)
     detached[vim.api.nvim_get_current_buf()] = nil
     set_buffer_content(0, content)
-    vim.notify(("nvim-timeline: switched to branch %q"):format(ref))
+    vim.notify(("timeline.nvim: switched to branch %q"):format(ref))
     return
   end
 
   local commit, err = log.find(root, id, ref)
   if err then
-    vim.notify("nvim-timeline: " .. err, vim.log.levels.ERROR)
+    vim.notify("timeline.nvim: " .. err, vim.log.levels.ERROR)
     return
   end
   if not commit then
-    vim.notify(("nvim-timeline: no branch or commit matching %q"):format(ref), vim.log.levels.WARN)
+    vim.notify(("timeline.nvim: no branch or commit matching %q"):format(ref), vim.log.levels.WARN)
     return
   end
 
@@ -342,7 +342,7 @@ local function checkout(ref)
 
   local content = store.get(root, commit.hash)
   if not content then
-    vim.notify("nvim-timeline: commit content missing from store (corrupt store?)", vim.log.levels.ERROR)
+    vim.notify("timeline.nvim: commit content missing from store (corrupt store?)", vim.log.levels.ERROR)
     return
   end
 
@@ -350,7 +350,7 @@ local function checkout(ref)
   detached[bufnr] = { timeline_id = id, root = root, hash = commit.hash, seq = commit.seq }
   set_buffer_content(bufnr, content)
   vim.notify(
-    ("nvim-timeline: viewing commit #%d %s (not a branch tip) -- saving will prompt for a new branch name"):format(
+    ("timeline.nvim: viewing commit #%d %s (not a branch tip) -- saving will prompt for a new branch name"):format(
       commit.seq,
       commit.hash:sub(1, 10)
     )
@@ -377,26 +377,26 @@ end
 local function create_branch(name)
   local file_path = vim.api.nvim_buf_get_name(0)
   if file_path == "" then
-    vim.notify("nvim-timeline: buffer has no file", vim.log.levels.WARN)
+    vim.notify("timeline.nvim: buffer has no file", vim.log.levels.WARN)
     return
   end
 
   local root = resolve_root(file_path)
   local id, paths, timelines = lookup_current(root, file_path)
   if not id then
-    vim.notify("nvim-timeline: no history for this file yet -- save it first", vim.log.levels.INFO)
+    vim.notify("timeline.nvim: no history for this file yet -- save it first", vim.log.levels.INFO)
     return
   end
 
   local entry = timelines[id]
   local tip = index.branch_head(entry, index.current_branch(entry))
   if not tip then
-    vim.notify("nvim-timeline: current branch has no commits yet -- save first", vim.log.levels.WARN)
+    vim.notify("timeline.nvim: current branch has no commits yet -- save first", vim.log.levels.WARN)
     return
   end
 
   do_create_branch(root, paths, timelines, entry, name, tip.hash, tip.seq)
-  vim.notify(("nvim-timeline: created and switched to branch %q"):format(name))
+  vim.notify(("timeline.nvim: created and switched to branch %q"):format(name))
 end
 M.create_branch = create_branch
 
@@ -418,7 +418,7 @@ end
 local function list_branches()
   local timeline = M.current_timeline()
   if not timeline then
-    vim.notify("nvim-timeline: no history for this file yet", vim.log.levels.INFO)
+    vim.notify("timeline.nvim: no history for this file yet", vim.log.levels.INFO)
     return
   end
 
@@ -484,7 +484,7 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("TimelineLog", function()
     local timeline = M.current_timeline()
     if not timeline then
-      vim.notify("nvim-timeline: no history for this file yet", vim.log.levels.INFO)
+      vim.notify("timeline.nvim: no history for this file yet", vim.log.levels.INFO)
       return
     end
 
@@ -516,7 +516,7 @@ function M.setup(opts)
   end, {})
 
   vim.api.nvim_create_user_command("TimelineView", function()
-    require("nvim-timeline.view").open()
+    require("timeline.view").open()
   end, {})
 end
 

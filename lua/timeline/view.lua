@@ -15,11 +15,11 @@ local Menu = require("nui.menu")
 local Popup = require("nui.popup")
 local Layout = require("nui.layout")
 
-local history = require("nvim-timeline.history")
-local diff = require("nvim-timeline.diff")
-local store = require("nvim-timeline.store")
-local index = require("nvim-timeline.index")
-local tl = require("nvim-timeline")
+local history = require("timeline.history")
+local diff = require("timeline.diff")
+local store = require("timeline.store")
+local index = require("timeline.index")
+local tl = require("timeline")
 
 local M = {}
 
@@ -99,14 +99,14 @@ end
 --- first open and again on <Tab> (branch cycling), since nui's Menu
 --- doesn't support swapping its item list in place -- remounting a
 --- small popup is cheap and simpler than fighting that.
----@param timeline table  from nvim-timeline.current_timeline()
+---@param timeline table  from timeline.current_timeline()
 ---@param branch string
 local function mount(timeline, branch)
   local chain = M._chain_for(timeline.entry, timeline.commits, branch)
   local items = M._build_items(chain, timeline.entry)
 
   if #items == 0 then
-    vim.notify(("nvim-timeline: branch %q has no commits"):format(branch), vim.log.levels.WARN)
+    vim.notify(("timeline.nvim: branch %q has no commits"):format(branch), vim.log.levels.WARN)
     return
   end
 
@@ -179,16 +179,16 @@ local function mount(timeline, branch)
     if not node then
       return
     end
-    vim.ui.input({ prompt = ("nvim-timeline: branch name at #%d: "):format(node.commit.seq) }, function(name)
+    vim.ui.input({ prompt = ("timeline.nvim: branch name at #%d: "):format(node.commit.seq) }, function(name)
       if not name or name == "" then
         return
       end
       local ok, err = tl.branch_from_commit(node.commit, name)
       if not ok then
-        vim.notify("nvim-timeline: " .. tostring(err), vim.log.levels.ERROR)
+        vim.notify("timeline.nvim: " .. tostring(err), vim.log.levels.ERROR)
         return
       end
-      vim.notify(("nvim-timeline: created branch %q at #%d"):format(name, node.commit.seq))
+      vim.notify(("timeline.nvim: created branch %q at #%d"):format(name, node.commit.seq))
       close()
       mount(timeline, name)
     end)
@@ -200,7 +200,7 @@ end
 function M.open()
   local timeline = tl.current_timeline()
   if not timeline then
-    vim.notify("nvim-timeline: no history for this file yet", vim.log.levels.INFO)
+    vim.notify("timeline.nvim: no history for this file yet", vim.log.levels.INFO)
     return
   end
   mount(timeline, index.current_branch(timeline.entry))

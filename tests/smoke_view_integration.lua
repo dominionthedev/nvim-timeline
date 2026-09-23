@@ -1,11 +1,11 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 local h = dofile(vim.fn.getcwd() .. "/tests/helpers.lua")
 
-local tl = require("nvim-timeline")
+local tl = require("timeline")
 tl.setup({})
-local view = require("nvim-timeline.view")
+local view = require("timeline.view")
 
-local dir = "/tmp/nvim-timeline-test-view"
+local dir = "/tmp/timeline-test-view"
 h.fresh_project(dir)
 
 h.write_file(dir .. "/f.txt", "version one")

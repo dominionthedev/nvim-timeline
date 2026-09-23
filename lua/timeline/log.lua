@@ -36,7 +36,7 @@ function M.append(root, id, commit)
 
   local fd = vim.loop.fs_open(path, "a", 420)
   if not fd then
-    error("nvim-timeline: could not open log for append: " .. path)
+    error("timeline.nvim: could not open log for append: " .. path)
   end
   vim.loop.fs_write(fd, line, -1)
   vim.loop.fs_close(fd)

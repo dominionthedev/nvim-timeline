@@ -49,7 +49,7 @@ function M.load(root)
   if not ok or type(decoded) ~= "table" then
     -- Corrupt index is a hard stop, not a silent reset: silently
     -- discarding it would orphan every tracked timeline's path mapping.
-    error("nvim-timeline: index.json is corrupt at " .. path)
+    error("timeline.nvim: index.json is corrupt at " .. path)
   end
 
   return decoded.paths or {}, decoded.timelines or {}

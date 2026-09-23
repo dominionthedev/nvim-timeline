@@ -1,7 +1,7 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 local h = dofile(vim.fn.getcwd() .. "/tests/helpers.lua")
 
-local view = require("nvim-timeline.view")
+local view = require("timeline.view")
 
 local entry = {
   head_branch = "main",

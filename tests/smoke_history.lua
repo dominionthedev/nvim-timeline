@@ -1,7 +1,7 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 local h = dofile(vim.fn.getcwd() .. "/tests/helpers.lua")
 
-local history = require("nvim-timeline.history")
+local history = require("timeline.history")
 
 -- Mirrors the real scenario from smoke_identity.lua: create, edit, then
 -- a relink whose hash is *identical to its own parent's* (that's what

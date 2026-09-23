@@ -1,7 +1,7 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 local h = dofile(vim.fn.getcwd() .. "/tests/helpers.lua")
 
-local diff = require("nvim-timeline.diff")
+local diff = require("timeline.diff")
 
 local d = diff.unified("line one\nline two", "line one\nline two changed")
 h.assert_true(d:find("line two changed") ~= nil, "unified diff contains the new content")

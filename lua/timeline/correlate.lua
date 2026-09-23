@@ -20,7 +20,7 @@
 -- prompt UI (in init.lua) can change without this logic needing retesting,
 -- and this logic can be unit tested without stubbing vim.ui.select.
 
-local index = require("nvim-timeline.index")
+local index = require("timeline.index")
 
 local M = {}
 

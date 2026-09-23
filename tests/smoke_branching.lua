@@ -11,10 +11,10 @@ vim.ui.input = function(_, on_confirm)
   on_confirm(input_answer)
 end
 
-local tl = require("nvim-timeline")
+local tl = require("timeline")
 tl.setup({})
 
-local dir = "/tmp/nvim-timeline-test-branch"
+local dir = "/tmp/timeline-test-branch"
 h.fresh_project(dir)
 
 -- commit A, then commit B on main

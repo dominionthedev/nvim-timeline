@@ -8,10 +8,10 @@ vim.ui.select = function(_, opts, on_choice)
   on_choice("Link")
 end
 
-local tl = require("nvim-timeline")
+local tl = require("timeline")
 tl.setup({})
 
-local dir = "/tmp/nvim-timeline-test-candidate"
+local dir = "/tmp/timeline-test-candidate"
 h.fresh_project(dir)
 vim.fn.mkdir(dir .. "/sub", "p")
 

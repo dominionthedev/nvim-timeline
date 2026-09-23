@@ -1,10 +1,10 @@
 vim.opt.rtp:prepend(vim.fn.getcwd())
 local h = dofile(vim.fn.getcwd() .. "/tests/helpers.lua")
 
-local tl = require("nvim-timeline")
+local tl = require("timeline")
 tl.setup({})
 
-local dir = "/tmp/nvim-timeline-test-rename"
+local dir = "/tmp/timeline-test-rename"
 h.fresh_project(dir)
 
 h.write_file(dir .. "/orig.txt", "line one")
