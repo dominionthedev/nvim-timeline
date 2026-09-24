@@ -16,17 +16,18 @@ tl.setup({})
 
 local dir = "/tmp/timeline-test-branch"
 h.fresh_project(dir)
+local store = h.store_dir(dir)
 
 -- commit A, then commit B on main
 h.write_file(dir .. "/f.txt", "content A")
 h.write_file(dir .. "/f.txt", "content B")
 
-local idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+local idx = h.read_json(store .. "/index.json")
 local id = idx.paths[dir .. "/f.txt"]
 local entry = idx.timelines[id]
 local commit_a_hash = nil
 do
-  local f = assert(io.open(dir .. "/.nvim-timeline/log/" .. id .. ".jsonl", "r"))
+  local f = assert(io.open(store .. "/log/" .. id .. ".jsonl", "r"))
   for line in f:lines() do
     local c = vim.json.decode(line)
     if c.path == dir .. "/f.txt" and c.parent == nil then
@@ -47,7 +48,7 @@ vim.api.nvim_buf_set_lines(0, 0, -1, false, { "content A edited" })
 input_answer = "experiment"
 vim.cmd("write")
 
-idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+idx = h.read_json(store .. "/index.json")
 entry = idx.timelines[id]
 
 h.assert_true(entry.branches["experiment"] ~= nil, "saving from a detached checkout creates the named branch")
@@ -58,12 +59,12 @@ h.assert_true(entry.branches["main"] ~= nil, "main branch tip is untouched by th
 vim.cmd("TimelineCheckout main")
 h.assert_eq(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"), "content B", "switching back to main restores its content")
 
-idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+idx = h.read_json(store .. "/index.json")
 h.assert_eq(idx.timelines[id].head_branch, "main", "checking out a branch by name persists as current")
 
 -- explicit branch creation at the current tip
 vim.cmd("TimelineBranch stable")
-idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+idx = h.read_json(store .. "/index.json")
 h.assert_eq(
   idx.timelines[id].branches["stable"].hash,
   idx.timelines[id].branches["main"].hash,

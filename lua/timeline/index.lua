@@ -27,11 +27,18 @@ M.DEFAULT_BRANCH = "main"
 ---@field head_branch string  -- which branch new writes append to
 ---@field branches table<string, BranchTip>  -- branch_name -> tip
 ---@field commit_count integer  -- total commits ever appended; source of the next seq
+---@field stashes StashEntry[]|nil  -- uncommitted work saved off before a forced checkout
+
+---@class StashEntry
+---@field hash string      content hash (already in the store via store.put)
+---@field based_on integer|nil  seq of the commit this buffer was sitting on when stashed
+---@field path string      path at the time of stashing
+---@field timestamp integer
 
 --- Load the index from disk. Returns an empty index if none exists yet —
 --- this is the expected state for a freshly-initialized store, not an
 --- error.
----@param root string store root, e.g. ".nvim-timeline"
+---@param root string this timeline's store dir (see timeline.paths)
 ---@return table<string, string> paths    current_path -> timeline_id
 ---@return table<string, TimelineEntry> timelines  timeline_id -> entry
 function M.load(root)
@@ -191,6 +198,36 @@ function M.relink(paths, timelines, id, new_path, hash)
   paths[new_path] = id
   entry.last_known_path = new_path
   entry.last_hash = hash
+end
+
+--- Record a stash: dirty buffer content that would otherwise be lost by
+--- a forced checkout. The content itself must already be written to the
+--- store by the caller (store.put) before calling this -- this function
+--- only records the metadata pointer to it.
+---@param entry TimelineEntry
+---@param hash string
+---@param based_on integer|nil
+---@param path string
+function M.add_stash(entry, hash, based_on, path)
+  entry.stashes = entry.stashes or {}
+  table.insert(entry.stashes, {
+    hash = hash,
+    based_on = based_on,
+    path = path,
+    timestamp = os.time(),
+  })
+end
+
+--- List stashes, newest first.
+---@param entry TimelineEntry
+---@return StashEntry[]
+function M.list_stashes(entry)
+  local stashes = entry.stashes or {}
+  local reversed = {}
+  for i = #stashes, 1, -1 do
+    table.insert(reversed, stashes[i])
+  end
+  return reversed
 end
 
 return M

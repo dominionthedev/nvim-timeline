@@ -13,6 +13,7 @@ tl.setup({})
 
 local dir = "/tmp/timeline-test-candidate"
 h.fresh_project(dir)
+local store = h.store_dir(dir)
 vim.fn.mkdir(dir .. "/sub", "p")
 
 h.write_file(dir .. "/a.txt", "version one")
@@ -21,7 +22,7 @@ h.write_file(dir .. "/sub/a.txt", "version one edited") -- same basename, differ
 
 h.assert_true(prompted, "same-basename-different-hash triggers a link prompt instead of auto-linking")
 
-local idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+local idx = h.read_json(store .. "/index.json")
 local ids = {}
 for id in pairs(idx.timelines) do
   table.insert(ids, id)

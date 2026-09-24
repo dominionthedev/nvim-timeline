@@ -24,6 +24,15 @@ vim.fn.stdpath = (function(original)
 end)(vim.fn.stdpath)
 M.FAKE_STATE = FAKE_STATE
 
+--- Where a project's store lives under the isolated fake state dir --
+--- mirrors timeline.paths so tests don't hardcode the on-disk layout.
+---@param project_dir string
+---@return string
+function M.store_dir(project_dir)
+  local paths = require("timeline.paths")
+  return paths.store_dir(paths.project_root(project_dir .. "/x"))
+end
+
 local failures = 0
 
 function M.assert_eq(actual, expected, msg)
@@ -51,6 +60,16 @@ function M.fresh_project(dir)
   vim.fn.delete(dir, "rf")
   vim.fn.mkdir(dir, "p")
   vim.fn.system({ "git", "init", "-q", dir })
+  -- The store now lives outside the project dir (under stdpath("state")),
+  -- so deleting the project dir alone leaves a stale store behind from
+  -- any previous run of this same test file -- wipe it too. The
+  -- real-path -> dirname mapping in meta.json is fine to keep (it's
+  -- meant to be stable); only the store's contents need a clean slate.
+  local paths = require("timeline.paths")
+  local ok, root = pcall(paths.project_root, dir .. "/x")
+  if ok then
+    vim.fn.delete(paths.store_dir(root), "rf")
+  end
 end
 
 function M.read_json(path)

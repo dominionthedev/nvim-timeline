@@ -6,11 +6,12 @@ tl.setup({})
 
 local dir = "/tmp/timeline-test-rename"
 h.fresh_project(dir)
+local store = h.store_dir(dir)
 
 h.write_file(dir .. "/orig.txt", "line one")
 vim.cmd("saveas " .. dir .. "/renamed.txt")
 
-local idx = h.read_json(dir .. "/.nvim-timeline/index.json")
+local idx = h.read_json(store .. "/index.json")
 
 local ids = {}
 for id in pairs(idx.timelines) do
