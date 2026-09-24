@@ -25,6 +25,7 @@ both descend from) appears once under each such branch -- that's the
 same thing `git log <branch>` shows you per branch, not a bug.
 
 Keys (cursor in the sidebar):
+
 ```
 <CR>   on a commit: open a read-only diff view of it in a split
        (see "Viewing vs. checkout" below) -- never touches your buffer
@@ -82,14 +83,14 @@ side, go copy what you need."
   using `nvim_buf_set_name`) are handled separately and directly —
   Neovim hands over the old and new name with zero ambiguity, so this
   never goes through the hash-guessing path at all.
-- A deletion is *discovered* on the next related write, not witnessed
+- A deletion is _discovered_ on the next related write, not witnessed
   live. If you want a plugin that timestamps the exact moment of
   deletion, this isn't it — that requires a filesystem watcher, which
   was a deliberate scope cut for v1.
 - Divergence and branching: if you check out an older commit that
   isn't any branch's current tip and then save, the buffer is in a
   transient "detached" state -- you're prompted to name a new branch
-  before anything is committed. The branch you diverged *from* is
+  before anything is committed. The branch you diverged _from_ is
   never rewritten or lost; it keeps its own forward history untouched
   while your new branch grows from the point you diverged at.
 - Commit graph identity is a strictly increasing sequence number

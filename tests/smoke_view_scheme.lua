@@ -39,7 +39,10 @@ h.assert_true(
 -- original window instead of leaving it stuck in diff view.
 vim.api.nvim_win_close(new_win, true)
 vim.wait(30)
-h.assert_true(not vim.wo[original_win].diff, "closing the viewer clears diff mode on the original window")
+h.assert_true(
+  not vim.wo[original_win].diff,
+  "closing the viewer clears diff mode on the original window"
+)
 
 -- Original working buffer itself must be completely untouched by view()
 -- -- this is the whole point of view being the safe, non-destructive

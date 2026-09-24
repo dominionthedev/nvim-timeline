@@ -135,11 +135,14 @@ local function render()
   end
 
   local bufnr = state.tracked_bufnr
-  local file_path = bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_get_name(bufnr) or nil
+  local file_path = bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_get_name(bufnr)
+    or nil
   local timeline = file_path and file_path ~= "" and tl.current_timeline(file_path) or nil
 
   if not timeline then
-    state.tree:set_nodes({ NuiTree.Node({ id = "info", kind = "info", text = "(no history for this file yet)" }) })
+    state.tree:set_nodes({
+      NuiTree.Node({ id = "info", kind = "info", text = "(no history for this file yet)" }),
+    })
     state.tree:render()
     return
   end
@@ -269,20 +272,23 @@ local function on_branch()
     return
   end
 
-  vim.ui.input({ prompt = ("timeline.nvim: branch name at #%d: "):format(node.commit.seq) }, function(name)
-    if not name or name == "" then
-      return
-    end
-    with_tracked_focus(function()
-      local ok, err = tl.branch_from_commit(node.commit, name)
-      if not ok then
-        vim.notify("timeline.nvim: " .. tostring(err), vim.log.levels.ERROR)
+  vim.ui.input(
+    { prompt = ("timeline.nvim: branch name at #%d: "):format(node.commit.seq) },
+    function(name)
+      if not name or name == "" then
         return
       end
-      vim.notify(("timeline.nvim: created branch %q at #%d"):format(name, node.commit.seq))
-      M.refresh()
-    end, true)
-  end)
+      with_tracked_focus(function()
+        local ok, err = tl.branch_from_commit(node.commit, name)
+        if not ok then
+          vim.notify("timeline.nvim: " .. tostring(err), vim.log.levels.ERROR)
+          return
+        end
+        vim.notify(("timeline.nvim: created branch %q at #%d"):format(name, node.commit.seq))
+        M.refresh()
+      end, true)
+    end
+  )
 end
 
 --- Close the sidebar.
@@ -308,8 +314,19 @@ function M.open()
     relative = "editor",
     position = "right",
     size = 42,
-    buf_options = { modifiable = false, filetype = "timeline-sidebar", swapfile = false, buflisted = false },
-    win_options = { number = false, relativenumber = false, wrap = false, signcolumn = "no", cursorline = true },
+    buf_options = {
+      modifiable = false,
+      filetype = "timeline-sidebar",
+      swapfile = false,
+      buflisted = false,
+    },
+    win_options = {
+      number = false,
+      relativenumber = false,
+      wrap = false,
+      signcolumn = "no",
+      cursorline = true,
+    },
   })
   split:mount()
 

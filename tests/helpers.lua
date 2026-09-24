@@ -38,7 +38,13 @@ local failures = 0
 function M.assert_eq(actual, expected, msg)
   if actual ~= expected then
     failures = failures + 1
-    print(("FAIL: %s\n  expected: %s\n  actual:   %s"):format(msg or "", vim.inspect(expected), vim.inspect(actual)))
+    print(
+      ("FAIL: %s\n  expected: %s\n  actual:   %s"):format(
+        msg or "",
+        vim.inspect(expected),
+        vim.inspect(actual)
+      )
+    )
   else
     print(("PASS: %s"):format(msg or ""))
   end

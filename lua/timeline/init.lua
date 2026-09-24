@@ -157,8 +157,9 @@ end
 local function commit_detached(bufnr, file_path, content, hash)
   local d = detached[bufnr]
   vim.ui.input({
-    prompt = ("timeline.nvim: you're editing from an old commit (%s). Name a new branch to save this as: ")
-      :format(d.hash:sub(1, 10)),
+    prompt = ("timeline.nvim: you're editing from an old commit (%s). Name a new branch to save this as: "):format(
+      d.hash:sub(1, 10)
+    ),
   }, function(name)
     if not name or name == "" then
       vim.notify("timeline.nvim: save cancelled -- no branch name given", vim.log.levels.WARN)
@@ -229,8 +230,10 @@ local function on_write(bufnr)
   if decision.kind == "candidate" then
     local old_path = timelines[decision.timeline_id].last_known_path
     vim.ui.select({ "Link", "Start new" }, {
-      prompt = ("timeline.nvim: %s looks like it might continue %s (deleted earlier). Link them?")
-        :format(vim.fn.fnamemodify(file_path, ":t"), old_path),
+      prompt = ("timeline.nvim: %s looks like it might continue %s (deleted earlier). Link them?"):format(
+        vim.fn.fnamemodify(file_path, ":t"),
+        old_path
+      ),
     }, function(choice)
       local p, t = index.load(root)
       if choice == "Link" then
@@ -332,16 +335,23 @@ function M.checkout(ref, force)
     local dirty_content = read_buffer_content(bufnr)
     local dirty_hash = store.hash(dirty_content)
     store.put(root, dirty_content)
-    local based_on = detached[bufnr] and detached[bufnr].seq or (index.branch_head(entry, index.current_branch(entry)) or {}).seq
+    local based_on = detached[bufnr] and detached[bufnr].seq
+      or (index.branch_head(entry, index.current_branch(entry)) or {}).seq
     index.add_stash(entry, dirty_hash, based_on, file_path)
     index.save(root, file_paths, timelines)
-    vim.notify("timeline.nvim: stashed unsaved changes (see :TimelineStashes) before checkout", vim.log.levels.WARN)
+    vim.notify(
+      "timeline.nvim: stashed unsaved changes (see :TimelineStashes) before checkout",
+      vim.log.levels.WARN
+    )
   end
 
   if branch_name then
     local content = store.get(root, commit.hash)
     if not content then
-      vim.notify("timeline.nvim: branch tip content missing from store (corrupt store?)", vim.log.levels.ERROR)
+      vim.notify(
+        "timeline.nvim: branch tip content missing from store (corrupt store?)",
+        vim.log.levels.ERROR
+      )
       return false
     end
     index.switch_branch(entry, branch_name)
@@ -363,7 +373,10 @@ function M.checkout(ref, force)
 
   local content = store.get(root, commit.hash)
   if not content then
-    vim.notify("timeline.nvim: commit content missing from store (corrupt store?)", vim.log.levels.ERROR)
+    vim.notify(
+      "timeline.nvim: commit content missing from store (corrupt store?)",
+      vim.log.levels.ERROR
+    )
     return false
   end
 
@@ -456,7 +469,10 @@ function M.view(ref)
 
   local content = store.get(timeline.root, commit.hash)
   if not content then
-    vim.notify("timeline.nvim: commit content missing from store (corrupt store?)", vim.log.levels.ERROR)
+    vim.notify(
+      "timeline.nvim: commit content missing from store (corrupt store?)",
+      vim.log.levels.ERROR
+    )
     return
   end
 
@@ -484,7 +500,10 @@ function M.view_stash(n)
   end
   local content = store.get(timeline.root, stash.hash)
   if not content then
-    vim.notify("timeline.nvim: stash content missing from store (corrupt store?)", vim.log.levels.ERROR)
+    vim.notify(
+      "timeline.nvim: stash content missing from store (corrupt store?)",
+      vim.log.levels.ERROR
+    )
     return
   end
   local url = build_stash_url(timeline.root, timeline.id, n)
@@ -510,11 +529,22 @@ function M.create_branch(name)
 
   local tip = index.branch_head(timeline.entry, index.current_branch(timeline.entry))
   if not tip then
-    vim.notify("timeline.nvim: current branch has no commits yet -- save first", vim.log.levels.WARN)
+    vim.notify(
+      "timeline.nvim: current branch has no commits yet -- save first",
+      vim.log.levels.WARN
+    )
     return
   end
 
-  do_create_branch(timeline.root, timeline.paths, timeline.timelines, timeline.entry, name, tip.hash, tip.seq)
+  do_create_branch(
+    timeline.root,
+    timeline.paths,
+    timeline.timelines,
+    timeline.entry,
+    name,
+    tip.hash,
+    tip.seq
+  )
   vim.notify(("timeline.nvim: created and switched to branch %q"):format(name))
 end
 
@@ -529,7 +559,15 @@ function M.branch_from_commit(commit, name)
   if not timeline then
     return false, "no history for this file yet"
   end
-  do_create_branch(timeline.root, timeline.paths, timeline.timelines, timeline.entry, name, commit.hash, commit.seq)
+  do_create_branch(
+    timeline.root,
+    timeline.paths,
+    timeline.timelines,
+    timeline.entry,
+    name,
+    commit.hash,
+    commit.seq
+  )
   return true
 end
 
@@ -544,7 +582,10 @@ function M.list_branches()
   local current = index.current_branch(timeline.entry)
   local lines = {}
   for name, tip in pairs(timeline.entry.branches) do
-    table.insert(lines, ("  %s %s  #%d %s"):format(name == current and "*" or " ", name, tip.seq, tip.hash:sub(1, 10)))
+    table.insert(
+      lines,
+      ("  %s %s  #%d %s"):format(name == current and "*" or " ", name, tip.seq, tip.hash:sub(1, 10))
+    )
   end
   table.sort(lines)
   vim.notify(table.concat(lines, "\n"))
@@ -628,7 +669,13 @@ function M.setup(opts)
     callback = function(args)
       local root, id, seq, stash_n = parse_timeline_url(args.match)
       if not root then
-        vim.api.nvim_buf_set_lines(args.buf, 0, -1, false, { "timeline.nvim: malformed timeline:// url" })
+        vim.api.nvim_buf_set_lines(
+          args.buf,
+          0,
+          -1,
+          false,
+          { "timeline.nvim: malformed timeline:// url" }
+        )
         return
       end
 

@@ -25,17 +25,32 @@ local dir_one = paths.store_dir(root_one)
 local dir_two = paths.store_dir(root_two)
 h.assert_true(dir_one ~= dir_two, "same basename, different real projects get different store dirs")
 h.assert_true(dir_one:find("api") ~= nil, "the first claimant of a basename keeps the plain name")
-h.assert_true(dir_two:find("api%-") ~= nil, "the second claimant of the same basename gets disambiguated")
+h.assert_true(
+  dir_two:find("api%-") ~= nil,
+  "the second claimant of the same basename gets disambiguated"
+)
 
 -- Symlink to project A should resolve to the SAME store as A itself.
 vim.loop.fs_symlink("/tmp/timeline-test-proj-a", "/tmp/timeline-test-proj-a-link")
 local root_via_link = paths.project_root("/tmp/timeline-test-proj-a-link/f.txt")
-h.assert_eq(root_via_link, root_a, "a symlinked path to the same project resolves to the same real root")
-h.assert_eq(paths.store_dir(root_via_link), dir_a1, "...and therefore the same store dir, not a second one")
+h.assert_eq(
+  root_via_link,
+  root_a,
+  "a symlinked path to the same project resolves to the same real root"
+)
+h.assert_eq(
+  paths.store_dir(root_via_link),
+  dir_a1,
+  "...and therefore the same store dir, not a second one"
+)
 
 -- meta.json actually persisted and is readable back.
 local meta = h.read_json(h.FAKE_STATE .. "/timeline/meta.json")
-h.assert_eq(meta[root_a], "timeline-test-proj-a", "meta.json records project A's real root -> dirname")
+h.assert_eq(
+  meta[root_a],
+  "timeline-test-proj-a",
+  "meta.json records project A's real root -> dirname"
+)
 h.assert_eq(meta[root_one], "api", "meta.json gives the first api/ claimant the plain name")
 
 h.finish()

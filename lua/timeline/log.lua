@@ -103,12 +103,13 @@ function M.find(root, id, ref)
     table.sort(matches, function(a, b)
       return a.seq < b.seq
     end)
-    return nil, ("ambiguous ref %q matches %d commits (seq %d..%d), use a longer hash or the seq number"):format(
-      ref,
-      #matches,
-      matches[1].seq,
-      matches[#matches].seq
-    )
+    return nil,
+      ("ambiguous ref %q matches %d commits (seq %d..%d), use a longer hash or the seq number"):format(
+        ref,
+        #matches,
+        matches[1].seq,
+        matches[#matches].seq
+      )
   end
   return matches[1], nil
 end

@@ -29,7 +29,10 @@ h.assert_eq(
 )
 
 idx = h.read_json(store .. "/index.json")
-h.assert_true(idx.timelines[id].stashes == nil, "no stash is created by a refused (non-forced) checkout")
+h.assert_true(
+  idx.timelines[id].stashes == nil,
+  "no stash is created by a refused (non-forced) checkout"
+)
 
 -- Forced: the dirty content is stashed, THEN the checkout proceeds.
 ok = tl.checkout("1", true)
@@ -49,7 +52,11 @@ h.assert_eq(#stashes, 1, "the dirty content was stashed exactly once")
 local stash_hash = stashes[1].hash
 local blob_path = store .. "/objects/" .. stash_hash:sub(1, 2) .. "/" .. stash_hash
 local f = assert(io.open(blob_path, "r"))
-h.assert_eq(f:read("*a"), "version two, unsaved edit", "the stashed content is actually retrievable from the store")
+h.assert_eq(
+  f:read("*a"),
+  "version two, unsaved edit",
+  "the stashed content is actually retrievable from the store"
+)
 f:close()
 
 h.finish()

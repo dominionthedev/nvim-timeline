@@ -41,7 +41,11 @@ h.assert_true(commit_a_hash ~= nil, "found commit A's hash in the log")
 vim.cmd("edit " .. dir .. "/f.txt")
 vim.cmd("TimelineCheckout " .. commit_a_hash:sub(1, 10))
 
-h.assert_eq(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"), "content A", "checkout loads old content into the buffer")
+h.assert_eq(
+  table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"),
+  "content A",
+  "checkout loads old content into the buffer"
+)
 
 -- edit while detached, then save -- should prompt for a branch name
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { "content A edited" })
@@ -51,16 +55,27 @@ vim.cmd("write")
 idx = h.read_json(store .. "/index.json")
 entry = idx.timelines[id]
 
-h.assert_true(entry.branches["experiment"] ~= nil, "saving from a detached checkout creates the named branch")
+h.assert_true(
+  entry.branches["experiment"] ~= nil,
+  "saving from a detached checkout creates the named branch"
+)
 h.assert_eq(entry.head_branch, "experiment", "the new branch becomes current after the prompt")
 h.assert_true(entry.branches["main"] ~= nil, "main branch tip is untouched by the detached save")
 
 -- switch back to main and confirm content reverts
 vim.cmd("TimelineCheckout main")
-h.assert_eq(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"), "content B", "switching back to main restores its content")
+h.assert_eq(
+  table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"),
+  "content B",
+  "switching back to main restores its content"
+)
 
 idx = h.read_json(store .. "/index.json")
-h.assert_eq(idx.timelines[id].head_branch, "main", "checking out a branch by name persists as current")
+h.assert_eq(
+  idx.timelines[id].head_branch,
+  "main",
+  "checking out a branch by name persists as current"
+)
 
 -- explicit branch creation at the current tip
 vim.cmd("TimelineBranch stable")
@@ -75,6 +90,10 @@ h.assert_eq(
   idx.timelines[id].branches["main"].seq,
   "explicit branch creation points at the same seq as the tip it branched from"
 )
-h.assert_eq(idx.timelines[id].head_branch, "stable", "explicit branch creation switches to the new branch")
+h.assert_eq(
+  idx.timelines[id].head_branch,
+  "stable",
+  "explicit branch creation switches to the new branch"
+)
 
 h.finish()

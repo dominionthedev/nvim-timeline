@@ -35,10 +35,22 @@ h.assert_eq(tree[2].children[1].commit.seq, 3, "main's tip is newest-first too")
 
 -- The shared root (seq 1) legitimately appears under BOTH branches, with
 -- branch-scoped ids so the tree doesn't collide on it.
-h.assert_eq(tree[1].children[2].id, "commit:experiment:1", "shared commit's id is scoped to the branch showing it")
-h.assert_eq(tree[2].children[3].id, "commit:main:1", "...and scoped differently under the other branch")
+h.assert_eq(
+  tree[1].children[2].id,
+  "commit:experiment:1",
+  "shared commit's id is scoped to the branch showing it"
+)
+h.assert_eq(
+  tree[2].children[3].id,
+  "commit:main:1",
+  "...and scoped differently under the other branch"
+)
 
 -- Empty entry (freshly created timeline, no branches yet) doesn't error.
-h.assert_eq(#sidebar._build_tree_data({ head_branch = "main", branches = {} }, {}), 0, "no branches yields an empty tree, not an error")
+h.assert_eq(
+  #sidebar._build_tree_data({ head_branch = "main", branches = {} }, {}),
+  0,
+  "no branches yields an empty tree, not an error"
+)
 
 h.finish()

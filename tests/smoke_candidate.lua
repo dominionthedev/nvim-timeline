@@ -20,7 +20,10 @@ h.write_file(dir .. "/a.txt", "version one")
 os.remove(dir .. "/a.txt")
 h.write_file(dir .. "/sub/a.txt", "version one edited") -- same basename, different hash
 
-h.assert_true(prompted, "same-basename-different-hash triggers a link prompt instead of auto-linking")
+h.assert_true(
+  prompted,
+  "same-basename-different-hash triggers a link prompt instead of auto-linking"
+)
 
 local idx = h.read_json(store .. "/index.json")
 local ids = {}

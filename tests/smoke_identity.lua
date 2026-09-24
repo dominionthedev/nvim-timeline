@@ -40,6 +40,10 @@ local all_entries = vim.fn.globpath(store .. "/objects", "**/*", false, true)
 local objects = vim.tbl_filter(function(p)
   return vim.fn.isdirectory(p) == 0
 end, all_entries)
-h.assert_eq(#objects, 2, "identical content across the edit and the relink is stored once, not twice")
+h.assert_eq(
+  #objects,
+  2,
+  "identical content across the edit and the relink is stored once, not twice"
+)
 
 h.finish()

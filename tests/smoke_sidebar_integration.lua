@@ -35,11 +35,18 @@ do
   local state = sidebar._state()
   h.assert_true(state ~= nil, "open() mounts the sidebar")
 
-  h.assert_true(goto_line_containing(state.split.winid, "#1"), "the root commit's line is found in the tree")
+  h.assert_true(
+    goto_line_containing(state.split.winid, "#1"),
+    "the root commit's line is found in the tree"
+  )
   vim.api.nvim_set_current_win(state.split.winid)
   feed("<CR>")
 
-  h.assert_eq(#vim.api.nvim_list_wins(), win_count_before + 2, "sidebar + diff viewer are both open")
+  h.assert_eq(
+    #vim.api.nvim_list_wins(),
+    win_count_before + 2,
+    "sidebar + diff viewer are both open"
+  )
   h.assert_eq(
     table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n"),
     "v1",
@@ -76,8 +83,15 @@ do
 
   local idx = h.read_json(store .. "/index.json")
   local id = next(idx.timelines)
-  h.assert_true(idx.timelines[id].branches["feature"] ~= nil, "'b' creates a new branch at the highlighted commit")
-  h.assert_eq(idx.timelines[id].branches["feature"].seq, 1, "the new branch points at the commit that was highlighted, not the tip")
+  h.assert_true(
+    idx.timelines[id].branches["feature"] ~= nil,
+    "'b' creates a new branch at the highlighted commit"
+  )
+  h.assert_eq(
+    idx.timelines[id].branches["feature"].seq,
+    1,
+    "the new branch points at the commit that was highlighted, not the tip"
+  )
 
   h.assert_true(
     goto_line_containing(state.split.winid, "feature") ~= false,
@@ -114,7 +128,10 @@ do
     "v1",
     "'c' checks out into the working buffer after confirming the stash-and-proceed prompt"
   )
-  h.assert_true(not vim.bo[file_bufnr].modified, "the working buffer is clean after the confirmed checkout")
+  h.assert_true(
+    not vim.bo[file_bufnr].modified,
+    "the working buffer is clean after the confirmed checkout"
+  )
 
   sidebar.close()
 end
