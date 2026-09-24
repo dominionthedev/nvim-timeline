@@ -14,7 +14,7 @@ local M = {}
 ---@param new_content string
 ---@return string unified_diff
 function M.unified(old_content, new_content)
-  local result = vim.diff(old_content or "", new_content, {
+  local result = vim.text.diff(old_content or "", new_content, {
     result_type = "unified",
     ctxlen = 3,
   })
