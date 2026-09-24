@@ -709,7 +709,7 @@ function M.setup(opts)
   end, { nargs = 1 })
 
   vim.api.nvim_create_user_command("TimelineView", function()
-    require("timeline.view").open()
+    require("timeline.sidebar").toggle()
   end, {})
 end
 
