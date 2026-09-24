@@ -1,30 +1,21 @@
-# timeline.nvim
+# Timeline.nvim
 
 Git-like history for individual files in Neovim, shown in a persistent
-sidebar -- the part vim's `undofile` can't do: a file's history survives
+sidebar — the part vim's `undofile` can't do: a file's history survives
 being deleted and recreated, because identity is tracked independently
 of path.
 
-## Status: v1
-
-Store, identity correlation, branching, checkout, the sidebar, and
-checkout safety (stashing instead of silently discarding unsaved
-changes) are all implemented and covered by real tests (see `tests/`),
-including ones that drive the actual UI with real keypresses.
-
 ## The sidebar
 
-`:TimelineView` opens (and re-running it closes) a persistent sidebar,
-similar in spirit to VSCode's Timeline panel -- it stays open and
-updates to show whatever file you're currently editing, rather than a
-one-shot popup you reopen every time.
+`:TimelineView` opens a persistent sidebar, it stays open and
+updates to show whatever file you're currently editing.
 
 Branches are the top-level tree nodes; commits nest underneath,
 newest first. A commit shared by more than one branch (an ancestor
 both descend from) appears once under each such branch -- that's the
-same thing `git log <branch>` shows you per branch, not a bug.
+same thing `git log <branch>` shows you per branch.
 
-Keys (cursor in the sidebar):
+Keys:
 
 ```
 <CR>   on a commit: open a read-only diff view of it in a split
@@ -36,7 +27,7 @@ b      branch off the highlighted commit, whether or not it's a tip
 q      close the sidebar
 ```
 
-## Viewing vs. checkout -- two different risk levels, two different keys
+## Viewing vs. checkout
 
 - **View** (`<CR>` in the sidebar, or `:TimelineShow {ref}`) opens the
   historical content read-only in a `timeline://` buffer, diffed
@@ -60,11 +51,7 @@ snapshotted into the store as a stash first. List stashes with
 historical version with `:TimelineStashShow {n}` (a read-only diff, not
 an automatic re-application -- you decide what to carry over by hand).
 
-Automatically re-applying a stash on top of a different version (the
-way `git stash pop` sometimes silently succeeds) is a deliberate v2+
-idea, not done here: a plausible-looking but subtly wrong automatic
-merge is a worse failure mode than "here's your old content side by
-side, go copy what you need."
+Automatically re-applying a stash on top of a different version is a v2+ feature
 
 ## How it works
 
@@ -95,8 +82,7 @@ side, go copy what you need."
   while your new branch grows from the point you diverged at.
 - Commit graph identity is a strictly increasing sequence number
   (`seq`), not content hash -- a relink commit legitimately has the
-  same hash as its own parent (that's what made it match in the first
-  place), so hash alone can't be the graph's identity.
+  same hash as its own parent, so hash alone can't be the graph's identity.
 
 ## Storage
 
@@ -109,12 +95,11 @@ side, go copy what you need."
     log/<timeline_id>.jsonl  append-only commit records
 ```
 
-One store directory per project, all living under Neovim's own state
-directory rather than scattered `.timeline/` folders inside your
-projects. A project's directory name matches its basename unless
-another, genuinely different project already claimed that basename --
+One store directory per project, all living under Neovim's state dir.
+A project's directory name matches its basename unless another,
+genuinely different project already claimed that basename.
 `meta.json` is what remembers which real path a given directory
-actually belongs to, and a project's real path (symlinks resolved) is
+actually belongs to, and a project's real path is
 always used as the lookup key, so opening the same project two
 different ways never creates two stores.
 
@@ -122,7 +107,7 @@ different ways never creates two stores.
 
 ```lua
 {
-  "dominionthedev/timeline.nvim", -- update once the repo itself is renamed
+  "dominionthedev/timeline.nvim",
   dependencies = { "MunifTanjim/nui.nvim" },
   config = function()
     require("timeline").setup({})
@@ -153,24 +138,12 @@ plugin -- so it's the one real dependency.
 
 Full details: `:help timeline.nvim`.
 
-## What's deliberately not here yet
-
-- Automatic stash re-application (see "Checkout safety" above) --
-  planned as a real v2 feature, not a gap left by accident.
-- Branch merging (not planned — this is single-writer history; a
-  branch is just a second named tip, not a mergeable line).
-- A filesystem watcher for live-witnessed deletions (explicitly out of
-  scope — see "How it works" above).
-- Fuzzy filtering in the sidebar (it's a plain tree -- fine at the
-  scale of one file's history, revisit if that stops being true).
-
 ## Testing
 
 ```sh
-git clone --depth 1 https://github.com/MunifTanjim/nui.nvim.git .deps/nui.nvim  # once, for the sidebar tests
+git clone --depth 1 https://github.com/MunifTanjim/nui.nvim.git .deps/nui.nvim
 for f in tests/smoke_*.lua; do nvim --headless -u NONE -c "luafile $f"; done
 ```
 
 Tests assert real behavior end to end, including ones that drive the
-sidebar with actual keypresses (`smoke_sidebar_integration.lua`) rather
-than only checking that it opens without erroring.
+sidebar with actual keypresses (`smoke_sidebar_integration.lua`).
