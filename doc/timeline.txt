@@ -1,0 +1,349 @@
+*timeline.nvim.txt*   Git-like history for individual files, in a sidebar
+
+==============================================================================
+Table of Contents                                *timeline-table-of-contents*
+
+  1. Introduction ................ |timeline-introduction|
+  2. Requirements ................ |timeline-requirements|
+  3. Installation ................ |timeline-installation|
+  4. Setup ........................ |timeline-setup|
+  5. The sidebar .................. |timeline-sidebar|
+  6. Viewing vs. checkout ......... |timeline-view-vs-checkout|
+  7. Checkout safety .............. |timeline-safety|
+  8. How it works ................. |timeline-how-it-works|
+  9. Commands ..................... |timeline-commands|
+ 10. Storage layout ............... |timeline-storage|
+ 11. Scope: what this isn't ....... |timeline-scope|
+ 12. FAQ / troubleshooting ........ |timeline-faq|
+ 13. Changelog and license ........ |timeline-about|
+
+==============================================================================
+1. Introduction                                     *timeline-introduction*
+                                                                  *timeline*
+
+timeline.nvim gives every file its own git-like history inside Neovim,
+browsed from a persistent sidebar.
+
+The problem it solves is specific: Vim's 'undofile' is keyed to a file's
+path and its own internal buffer state. Delete a file and recreate it --
+even with the exact same content -- and the undo history is gone. There
+is no "this is really the same file, it just came back" concept anywhere
+in Vim's undo system.
+
+timeline.nvim tracks identity independently of path, so a file's history
+survives being deleted and recreated. It gives each file real,
+inspectable commits (not just an undo tree), branching for when history
+genuinely diverges, and a sidebar to browse all of it -- similar in
+spirit to VSCode's Timeline panel.
+
+What it deliberately does NOT try to be: a replacement for git, a
+project-wide VCS, or a filesystem watcher. See |timeline-scope|.
+
+==============================================================================
+2. Requirements                                     *timeline-requirements*
+
+- Neovim, with |vim.diff()| and |vim.json| available (both ship with
+  Neovim; no specific version is currently pinned, but anything
+  reasonably recent works).
+- nui.nvim (https://github.com/MunifTanjim/nui.nvim) -- a real
+  dependency. The sidebar is built directly on nui.nvim's `Split` and
+  `Tree`, not wrapped around another picker or sidebar plugin.
+
+No native/compiled dependency: hashing uses Neovim's built-in
+|sha256()|, and diffing uses the built-in |vim.diff()|.
+
+==============================================================================
+3. Installation                                     *timeline-installation*
+
+Using lazy.nvim: >lua
+    {
+      "dominionthedev/timeline.nvim",
+      dependencies = { "MunifTanjim/nui.nvim" },
+      config = function()
+        require("timeline").setup({})
+      end,
+    }
+<
+lazy.nvim runs |:helptags| on the plugin's doc/ directory automatically,
+so this help file becomes available as soon as the plugin loads. If
+you're installing by hand, run: >vim
+    :helptags ~/.local/share/nvim/site/pack/*/start/timeline.nvim/doc
+<
+
+==============================================================================
+4. Setup                                                    *timeline-setup*
+
+>lua
+    require("timeline").setup({})
+<
+`setup()` must be called once; it wires the autocommands that make
+tracking happen (`BufWritePost` for commits, `BufFilePre`/`BufFilePost`
+for renames, `BufReadCmd` for the `timeline://` viewer scheme) and
+registers the |timeline-commands|. Nothing is tracked before `setup()`
+runs. There are currently no configuration options.
+
+==============================================================================
+5. The sidebar                                            *timeline-sidebar*
+
+                                                              *:TimelineView*
+:TimelineView
+    Toggle the sidebar: opens it if closed, closes it if open.
+
+The sidebar stays open and tracks whichever real file buffer you last
+had focus in -- switch buffers, and it updates to show that file's
+timeline, the way VSCode's own Timeline panel behaves. It ignores its
+own buffer and any `timeline://` viewer buffer when deciding what to
+track.
+
+Branches are the top-level tree nodes, sorted alphabetically; the
+current branch is marked and expanded by default, others start
+collapsed. Commits nest underneath their branch, newest first. A commit
+that multiple branches share as an ancestor legitimately appears once
+under EACH such branch -- exactly what `git log <branch>` shows you per
+branch, not a duplicate-looking bug.
+
+Mappings (cursor in the sidebar): >
+    <CR>   on a commit: open a read-only diff view of it (see
+           |timeline-view-vs-checkout|) -- never touches your buffer
+           on a branch: expand/collapse it
+    c      check out the highlighted commit into the file you're
+           tracking (destructive into that buffer -- see
+           |timeline-safety|)
+    b      branch off the highlighted commit, whether or not it's a
+           tip -- unlike :TimelineBranch, this works on ANY commit
+    q / <Esc>  close the sidebar
+<
+There is no fuzzy filter in the sidebar -- it's a plain tree. Deliberate
+v1 scope call for the size of history one file realistically
+accumulates; see |timeline-scope|.
+
+==============================================================================
+6. Viewing vs. checkout                          *timeline-view-vs-checkout*
+
+These are two different operations with two different risk levels, and
+deliberately two different keys/commands -- conflating them was a real
+design mistake in an earlier pass of this plugin.
+
+VIEW (safe, non-destructive)                            *:TimelineShow*
+:TimelineShow {ref}
+    Also: `<CR>` on a commit in the sidebar.
+
+    Opens the historical content of {ref} (a branch name, a bare seq
+    number, or a hash prefix) read-only in a new split, named
+    `timeline://...`, diffed against your current buffer with real
+    Neovim diff mode (`]c`/`[c` hunk navigation, syntax highlighting
+    intact). Your working buffer is never modified by this. Closing the
+    viewer split turns diff mode back off on the original window
+    automatically.
+
+CHECKOUT (can affect your buffer)                   *:TimelineCheckout*
+:TimelineCheckout[!] {ref}
+    Also: `c` on a commit in the sidebar.
+
+    Loads {ref}'s content into your actual current buffer, so you can
+    keep editing from there.
+      - If {ref} resolves to a branch's tip, this is a real, persisted
+        switch: the timeline's current branch changes and stays
+        changed until you check out something else.
+      - If {ref} resolves to an older commit that is NOT any branch's
+        tip, the buffer enters a transient "detached" state. Nothing
+        is recorded anywhere yet. If you save from a detached buffer,
+        you're prompted to name a new branch before anything is
+        committed -- same principle as the same-basename correlation
+        prompt in |timeline-how-it-works|: don't silently guess, don't
+        silently discard.
+      - Editing a detached buffer and then abandoning it (closing
+        without saving) records nothing.
+
+    See |timeline-safety| for what happens when your buffer has unsaved
+    changes at the moment you try to check something out.
+
+==============================================================================
+7. Checkout safety                                          *timeline-safety*
+
+Checkout REFUSES to run if your buffer has unsaved changes, unless you
+force it:
+  - `:TimelineCheckout!` (the `!` forces it), or
+  - confirming the "stash and check out" prompt the sidebar's `c`
+    mapping shows you when it hits the same guard.
+
+Forcing never silently discards your edit. The dirty content is
+snapshotted into the store as a STASH first -- store.put() writes the
+content, and a pointer to it (hash, timestamp, which commit it was
+based on) is recorded on the timeline.
+
+                                                          *:TimelineStashes*
+:TimelineStashes
+    List stashes for the current file, newest first.
+
+                                                       *:TimelineStashShow*
+:TimelineStashShow {n}
+    View stash number {n} (as listed by :TimelineStashes) exactly the
+    way a commit is viewed -- read-only, diffed against your current
+    buffer. Recovering a stash is a manual, deliberate copy-what-you-
+    need action, not an automatic re-application.
+
+Automatically re-applying a stash on top of a possibly-different
+version (closer to `git stash pop`'s behavior) is a real, named future
+feature -- deliberately not implemented in v1. A hunk-apply algorithm
+that looks plausible but is subtly wrong is a worse failure mode than
+"here's your old content side by side, go copy what you need by hand."
+
+==============================================================================
+8. How it works                                       *timeline-how-it-works*
+
+WRITE-TIME CORRELATION                            *timeline-correlation*
+
+There is no filesystem watcher and no background daemon. Every decision
+happens lazily, at the moment a file is saved (`BufWritePost`):
+
+- If the path being saved is already tracked, this is the trivial case:
+  append a commit, done.
+- If the path is NOT already tracked, timeline.nvim looks for a tracked
+  timeline whose last known path no longer exists on disk (an
+  "orphan"), and compares content hashes:
+    - Exact hash match -> linked automatically. No ambiguity.
+    - Same basename, no hash match -> you're prompted (via
+      |vim.ui.select()|) to confirm or decline linking it.
+    - Neither -> treated as a genuinely new timeline.
+
+A deletion is *discovered* on the next related write, never *witnessed*
+at the moment it happens -- see |timeline-scope|.
+
+RENAMES                                                *timeline-renames*
+
+Renaming a file through Neovim itself (`:saveas`, `:file`, or anything
+calling |nvim_buf_set_name()|) is handled directly via
+`BufFilePre`/`BufFilePost`, with zero ambiguity -- it never goes
+through the hash-guessing path above.
+
+DIVERGENCE AND BRANCHING                            *timeline-divergence*
+
+Say a file has commits A -> B -> C on `main`. You check out A (an older,
+non-tip commit -- see |timeline-view-vs-checkout|), edit, and save.
+There's no longer a single "next" position to append to: B and C still
+exist and are still `main`'s history, untouched. Saving from A instead
+prompts you to name a new branch, which starts there and grows in
+parallel. That prompt IS where branching comes from -- it's not a
+separate feature bolted onto commits, it's the direct consequence of
+"what happens when a save happens somewhere history has already grown a
+different direction." `main`'s forward history (B, C, ...) is never
+rewritten or destroyed by this.
+
+COMMIT GRAPH IDENTITY                                    *timeline-graph*
+
+Every commit has a strictly increasing sequence number (`seq`), which is
+its real identity in the commit graph -- parent pointers are `seq`
+values, not content hashes. Two different commits can legitimately
+share the same content hash (a relink-after-recreation commit has, by
+construction, the same hash as its own parent -- that's what made it
+match), so hash alone can't double as graph identity; a strictly
+decreasing `seq` always can.
+
+==============================================================================
+9. Commands                                             *timeline-commands*
+
+                                                              *:TimelineLog*
+:TimelineLog
+    Print the current buffer's raw commit history via |vim.notify()| --
+    sequence number, time, short hash, branch. Mainly a debugging aid;
+    the sidebar (|timeline-sidebar|) is the real way to browse.
+
+                                                        *:TimelineBranches*
+:TimelineBranches
+    List branches for the current buffer's timeline. Current branch is
+    marked with `*`.
+
+                                                          *:TimelineBranch*
+:TimelineBranch {name}
+    Create a branch named {name} at the CURRENT branch's tip, and
+    switch to it. Requires at least one commit already. To branch from
+    an arbitrary commit that isn't the current tip, use the sidebar's
+    `b` mapping instead (|timeline-sidebar|).
+
+See |timeline-view-vs-checkout| for :TimelineShow and
+:TimelineCheckout, and |timeline-safety| for :TimelineStashes and
+:TimelineStashShow.
+
+==============================================================================
+10. Storage layout                                        *timeline-storage*
+
+>
+    <stdpath("state")>/timeline/
+      meta.json                real_project_root -> dirname
+      <dirname>/
+        index.json             current_path -> timeline_id, branches,
+                                stashes, seq counter
+        objects/<xx>/<hash>    content-addressed blobs, deduplicated
+        log/<timeline_id>.jsonl  append-only commit records
+<
+One store directory per project, all under Neovim's own state directory
+-- NOT scattered into your project directories. A project's real path
+(symlinks resolved via |uv.fs_realpath()|) is the lookup key in
+meta.json, so the same physical project opened two different ways
+always resolves to one store. A directory name matches the project's
+basename unless a different, already-registered project claims that
+basename first, in which case a short hash of the real path
+disambiguates it (e.g. `myproject-a1b2c3d4`) -- meta.json is the only
+thing that has to know which disk directory belongs to which real
+project; the disambiguated name itself is chosen once and never
+changed afterward.
+
+==============================================================================
+11. Scope: what this isn't                                  *timeline-scope*
+
+Deliberate cuts, not gaps waiting to be filled by accident:
+
+- NOT a filesystem watcher. Deletions are discovered on the next
+  related write, never witnessed live.
+- NOT mergeable branches. A branch is a second named tip on a
+  single-writer history, not a mergeable line. No merge command, none
+  planned.
+- NOT automatic stash re-application (yet). See |timeline-safety|.
+- NOT a fuzzy-filtered sidebar (yet). Plain tree; revisit if a single
+  file's history ever gets large enough for that to matter.
+- NOT a git replacement. No remote, no commit messages, no staging, no
+  multi-file atomic commits. One file's own history, inside Neovim.
+
+==============================================================================
+12. FAQ / troubleshooting                                      *timeline-faq*
+
+Q: I deleted a file and recreated it, but its history didn't link up.
+A: Linking only happens automatically on an EXACT content hash match.
+   Different content gets a same-basename prompt instead (see
+   |timeline-correlation|) -- answer "Link" there, or use the sidebar's
+   `b` mapping / :TimelineBranch afterward if you'd rather keep them as
+   separate branches of the same timeline.
+
+Q: :TimelineCheckout (or the sidebar's `c`) refuses and mentions
+   unsaved changes.
+A: That's the safety guard in |timeline-safety| -- save first, or force
+   it (`:TimelineCheckout!`, or confirm the sidebar's prompt), which
+   stashes your changes instead of discarding them.
+
+Q: The sidebar says nui.nvim isn't found / errors on require.
+A: nui.nvim is a real dependency (|timeline-requirements|) -- add it to
+   your plugin manager's `dependencies`.
+
+Q: Nothing happens when I save a new file for the first time.
+A: Confirm `setup()` was called (|timeline-setup|), and that the buffer
+   has a real file path.
+
+Q: Can I see history across a whole project, not one file at a time?
+A: Not currently -- see |timeline-scope|. Everything operates on one
+   file's timeline.
+
+Q: I checked out an old commit, edited it, then closed the buffer
+   without saving. Did that create a branch?
+A: No. Nothing is recorded until you actually save from a detached
+   buffer -- see |timeline-view-vs-checkout|.
+
+==============================================================================
+13. Changelog and license                                    *timeline-about*
+
+See CHANGELOG.md in the plugin's repository root, and LICENSE (MIT).
+
+Repository: https://github.com/dominionthedev/timeline.nvim
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norg:

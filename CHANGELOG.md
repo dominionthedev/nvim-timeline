@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+- **Renamed nvim-timeline -> timeline.nvim** (module `require("timeline")`,
+  help tag `timeline.nvim`). Commands are unaffected (they were always
+  bare `:Timeline*`, no `Nvim` prefix).
+- **Replaced the popup picker with a persistent sidebar** (`Split` +
+  `Tree`, not `Menu` + `Layout`), similar in spirit to VSCode's Timeline
+  panel: branches as top-level tree nodes, commits nested underneath,
+  updates live as you switch buffers. The popup picker was the wrong UI
+  paradigm for what was actually wanted -- this isn't a tweak of the old
+  `view.lua`, it's a replacement (`view.lua` and its tests are removed).
+- **Split "view" from "checkout" into two distinct, differently-risky
+  actions.** `:TimelineShow` / `<CR>` in the sidebar opens a read-only
+  `timeline://` buffer diffed against your current buffer (real Neovim
+  diff mode) and never touches your working buffer. `:TimelineCheckout`
+  / `c` in the sidebar is the destructive-into-your-buffer operation.
+  Conflating these was a real design gap in the picker version.
+- **Checkout safety**: checkout now refuses to run when the current
+  buffer has unsaved changes, unless forced (`:TimelineCheckout!` or
+  confirming the sidebar's prompt) -- forcing stashes the dirty content
+  into the store first rather than silently discarding it.
+  `:TimelineStashes` / `:TimelineStashShow` list and recover stashes the
+  same way any other historical version is viewed. Automatic
+  stash-reapplication is a deliberate, named v2+ feature, not built here
+  -- a plausible-but-wrong automatic merge is worse than a manual one.
+- **Storage moved from a per-project `.nvim-timeline/` directory to a
+  single location under `stdpath("state")/timeline/`**, one subdirectory
+  per project, disambiguated by a `meta.json` mapping each project's
+  real (symlink-resolved) path to its directory name -- two different
+  projects sharing a basename no longer collide, and the same project
+  opened via a symlink no longer gets a second store. New module:
+  `paths.lua`.
+- Fixed a real bug found while wiring the sidebar's branch-from-commit
+  action through: `branch_from_commit` was passing the same table as
+  both the `paths` and `timelines` arguments to `index.save`, which
+  would have corrupted `index.json`'s path map the first time anyone
+  used that action with a real save. No test exercised it end-to-end
+  before now. `current_timeline()` now returns `paths` so this can't
+  recur, and a regression test in `smoke_sidebar_integration.lua`
+  exercises the real save path.
+- Fixed a second real bug in the same area: the sidebar's `b` (branch
+  off a commit) keymap resolved against the *current* buffer, which is
+  the sidebar's own nameless buffer when the keymap fires, not the
+  tracked file -- caught immediately by actually running the integration
+  test, not by inspection.
+- Fixed a `W10: readonly` warning in the `timeline://` viewer: content
+  was re-written after re-enabling `modifiable` but without also
+  clearing `readonly`, which is a separate option Neovim checks
+  independently.
+- Added a full `:help timeline.nvim` reference (`doc/timeline.txt`),
+  checked programmatically (every `|link|` verified to actually resolve
+  via `:help`, not just eyeballed) rather than assumed correct.
+- Rewrote README.md for the new architecture (sidebar, storage location,
+  view/checkout split, safety, stashes).
+
+## Unreleased (earlier)
+
 - **The picker**: `:TimelineView`, built directly on nui.nvim (`Menu` +
   `Layout`), not wrapped around another picker plugin. Commit list with
   live diff-vs-parent preview, branch cycling (`<Tab>`), checkout
